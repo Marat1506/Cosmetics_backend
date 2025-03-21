@@ -1,0 +1,36 @@
+[{
+  "_id": {
+    "$oid": "67db7c184dfaaff17ecd48d3"
+  },
+  "username": "Marat",
+  "phone": "324r42",
+  "telegram_nick": "@sfd",
+  "completed": false
+},
+{
+  "_id": {
+    "$oid": "67db7c354dfaaff17ecd48d6"
+  },
+  "username": "Dada",
+  "phone": "@fsdfd",
+  "telegram_nick": "sssdfs",
+  "completed": false
+},
+{
+  "_id": {
+    "$oid": "67db7cfe4dfaaff17ecd48d7"
+  },
+  "username": "Marat",
+  "phone": "dfd",
+  "telegram_nick": "@Mararkhhk",
+  "completed": false
+},
+{
+  "_id": {
+    "$oid": "67db7d274dfaaff17ecd48d8"
+  },
+  "username": "gg",
+  "phone": "23",
+  "telegram_nick": "https://t.me/Mararkhhk",
+  "completed": false
+}]

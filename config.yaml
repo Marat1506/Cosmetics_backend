@@ -1,0 +1,12 @@
+is_debug: true
+listen:
+  type: lock
+mongodb:
+  host: cluster0.1egkm.mongodb.net
+  port: ""
+  database: Cosmetics
+  auth_db: admin
+  username: maratmirzabalaev
+  password: 15062004marat
+  collection: users
+  orders_collection: orders
