@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	createOrder = "/createOrder"
-	getOrders   = "/getOrders"
-	changeOrder = "/changeOrder"
-	deleteOrder = "/deleteOrder"
+	createOrder = "/api/createOrder"
+	getOrders   = "/api/getOrders"
+	changeOrder = "/api/changeOrder"
+	deleteOrder = "/api/deleteOrder"
 )
 
 type handler struct {

@@ -11,23 +11,21 @@ import (
 )
 
 const (
-	getUsers = "/users"
-	getUserById = "/users/:uuid"
-	createUser = "/createuser"
-	login = "/login"
-	
+	getUsers    = "/api/users"
+	getUserById = "/api/user/:uuid"
+	createUser  = "/api/createuser"
+	login       = "/api/login"
 )
 
 type handler struct {
-	logger *logging.Logger
+	logger  *logging.Logger
 	service *Service
-} 
+}
 
 func NewHandler(logger *logging.Logger, service *Service) handlers.Handler {
-	return &handler {
-		logger: logger,
+	return &handler{
+		logger:  logger,
 		service: service,
-		
 	}
 }
 
@@ -67,7 +65,7 @@ func (h *handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		h.logger.Error("failed to get all users")
-		http.Error(w,"failed to get all users", http.StatusInternalServerError)
+		http.Error(w, "failed to get all users", http.StatusInternalServerError)
 		return
 	}
 
@@ -97,5 +95,5 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request, params httproute
 	fmt.Println("user login = ", user)
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]User{"user": user})
-	
+
 }

@@ -21,7 +21,6 @@ import (
 	"github.com/rs/cors"
 )
 
-// mongourl = mongodb+srv://maratmirzabalaev:15062004marat@cluster0.1egkm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 func main() {
 	logger := logging.GetLogger()
 	logger.Info("create router")
@@ -59,6 +58,21 @@ func main() {
 	logger.Info("register user handler")
 	userHandler.Register(router)
 
+	// Middleware для игнорирования запросов к фронтенду
+	ignoreFrontendRequests := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Если запрос не начинается с /api, игнорируем его
+			if !isAPIRequest(r.URL.Path) {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	// Применяем middleware
+	handler := ignoreFrontendRequests(router)
+
 	corsMiddleware := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -67,9 +81,13 @@ func main() {
 		Debug:            true,
 	})
 
-	handlerWithCORS := corsMiddleware.Handler(router)
+	handlerWithCORS := corsMiddleware.Handler(handler)
 	start(&handlerWithCORS, cfg)
+}
 
+// Функция для проверки, является ли запрос API-запросом
+func isAPIRequest(path string) bool {
+	return path == "/api/getOrders" || path == "/api/createOrder" || path == "/api/changeOrder" || path == "/api/deleteOrder" || path == "/api/users" || path == "/api/user/:uuid" || path == "/api/createuser" || path == "/api/login" // Добавьте другие API-маршруты
 }
 
 func start(handler *http.Handler, cfg *config.Config) {
