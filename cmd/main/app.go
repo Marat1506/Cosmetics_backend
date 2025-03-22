@@ -87,7 +87,24 @@ func main() {
 
 // Функция для проверки, является ли запрос API-запросом
 func isAPIRequest(path string) bool {
-	return path == "/api/getOrders" || path == "/api/createOrder" || path == "/api/changeOrder" || path == "/api/deleteOrder" || path == "/api/users" || path == "/api/user/:uuid" || path == "/api/createuser" || path == "/api/login" // Добавьте другие API-маршруты
+	// Добавьте все ваши API-маршруты
+	apiRoutes := []string{
+		"/api/getOrders",
+		"/api/createOrder",
+		"/api/changeOrder",
+		"/api/deleteOrder",
+		"/api/users",
+		"/api/user/:uuid",
+		"/api/createuser",
+		"/api/login",
+	}
+
+	for _, route := range apiRoutes {
+		if path == route {
+			return true
+		}
+	}
+	return false
 }
 
 func start(handler *http.Handler, cfg *config.Config) {
