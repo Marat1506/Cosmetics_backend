@@ -10,3 +10,5 @@ mongodb:
   password: 15062004marat
   collection: users
   orders_collection: orders
+  products: products
+

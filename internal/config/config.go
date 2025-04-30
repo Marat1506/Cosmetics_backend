@@ -23,6 +23,7 @@ type Config struct {
 		Password         string `yaml:"password"`
 		Collection       string `yaml:"collection"`
 		OrdersCollection string `yaml:"orders_collection"`
+		Products         string `yaml:"products"`
 	} `yaml:"mongodb"`
 }
 
