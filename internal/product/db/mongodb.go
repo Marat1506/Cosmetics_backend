@@ -34,9 +34,7 @@ func (d *ProductStorage) Create(ctx context.Context, product product.Product) (s
 func (d *ProductStorage) GetAll(ctx context.Context) ([]product.Product, error) {
 	d.logger.Debug("get all products")
 
-	// Добавляем сортировку по имени (опционально)
 	opts := options.Find().SetSort(bson.D{{"name", 1}})
-
 	cursor, err := d.collection.Find(ctx, bson.M{}, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find products: %v", err)
@@ -44,10 +42,20 @@ func (d *ProductStorage) GetAll(ctx context.Context) ([]product.Product, error) 
 	defer cursor.Close(ctx)
 
 	var products []product.Product
-	if err := cursor.All(ctx, &products); err != nil {
-		return nil, fmt.Errorf("failed to decode products: %v", err)
+	for cursor.Next(ctx) {
+		var p product.Product
+		if err := cursor.Decode(&p); err != nil {
+			d.logger.Errorf("Failed to decode product: %v", err)
+			continue
+		}
+		products = append(products, p)
 	}
 
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %v", err)
+	}
+
+	d.logger.Debugf("Retrieved %d products", len(products))
 	return products, nil
 }
 
