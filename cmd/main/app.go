@@ -12,7 +12,7 @@ import (
 	"server/internal/order"
 	orderDB "server/internal/order/db"
 	"server/internal/product"
-	db2 "server/internal/product/db"
+	productDB "server/internal/product/db"
 	"server/internal/user"
 	"server/internal/user/db"
 	"server/pkg/client/mongodb"
@@ -54,7 +54,7 @@ func main() {
 	orderService := order.NewService(orderStorage, logger)
 	orderHandler := order.NewHandler(logger, orderService)
 
-	productStorage := db2.NewStorage(mongoDBClient, cfg.MongoDB.Collection, logger)
+	productStorage := productDB.NewStorage(mongoDBClient, cfg.MongoDB.Collection, logger)
 
 	productService := product.NewService(productStorage, logger)
 	productHandler := product.NewHandler(logger, productService)
