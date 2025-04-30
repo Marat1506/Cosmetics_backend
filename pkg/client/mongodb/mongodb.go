@@ -12,12 +12,10 @@ import (
 func NewClient(ctx context.Context, host, port, username, password, database, authDB string) (db *mongo.Database, err error) {
 	var mongoDBURL string
 
-	// Формируем URL для подключения
 	if strings.HasPrefix(host, "mongodb+srv://") {
-		// Если хост уже содержит SRV-запись, используем его как есть
+
 		mongoDBURL = fmt.Sprintf("%s/%s?retryWrites=true&w=majority&appName=Cluster0&authSource=%s", host, database, authDB)
 	} else {
-		// Для локального MongoDB
 		if username == "" && password == "" {
 			mongoDBURL = fmt.Sprintf("mongodb://%s:%s", host, port)
 		} else {
@@ -33,7 +31,6 @@ func NewClient(ctx context.Context, host, port, username, password, database, au
 		return nil, fmt.Errorf("failed to connect to mongodb due to error: %v", err)
 	}
 
-	// Проверка подключения
 	if err := client.Ping(ctx, nil); err != nil {
 		return nil, fmt.Errorf("failed to ping mongodb due to error: %v", err)
 	}

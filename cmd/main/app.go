@@ -11,6 +11,8 @@ import (
 	"server/internal/config"
 	"server/internal/order"
 	orderDB "server/internal/order/db"
+	"server/internal/product"
+	db2 "server/internal/product/db"
 	"server/internal/user"
 	"server/internal/user/db"
 	"server/pkg/client/mongodb"
@@ -30,7 +32,7 @@ func main() {
 	cfgMongo := cfg.MongoDB
 	mongoDBClient, err := mongodb.NewClient(context.Background(),
 		"mongodb+srv://maratmirzabalaev:15062004marat@cluster0.1egkm.mongodb.net",
-		"", // Порт не нужен для SRV
+		"",
 		cfgMongo.Username,
 		cfgMongo.Password,
 		cfgMongo.Database,
@@ -52,16 +54,22 @@ func main() {
 	orderService := order.NewService(orderStorage, logger)
 	orderHandler := order.NewHandler(logger, orderService)
 
+	productStorage := db2.NewStorage(mongoDBClient, cfg.MongoDB.Collection, logger)
+
+	productService := product.NewService(productStorage, logger)
+	productHandler := product.NewHandler(logger, productService)
+
 	logger.Info("register order handler ")
 	orderHandler.Register(router)
 
 	logger.Info("register user handler")
 	userHandler.Register(router)
 
-	// Middleware для игнорирования запросов к фронтенду
+	logger.Info("register product handler")
+	productHandler.Register(router)
+
 	ignoreFrontendRequests := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Если запрос не начинается с /api, игнорируем его
 			if !isAPIRequest(r.URL.Path) {
 				w.WriteHeader(http.StatusOK)
 				return
@@ -70,7 +78,6 @@ func main() {
 		})
 	}
 
-	// Применяем middleware
 	handler := ignoreFrontendRequests(router)
 
 	corsMiddleware := cors.New(cors.Options{
@@ -85,9 +92,8 @@ func main() {
 	start(&handlerWithCORS, cfg)
 }
 
-// Функция для проверки, является ли запрос API-запросом
 func isAPIRequest(path string) bool {
-	// Добавьте все ваши API-маршруты
+
 	apiRoutes := []string{
 		"/api/getOrders",
 		"/api/createOrder",
@@ -97,6 +103,8 @@ func isAPIRequest(path string) bool {
 		"/api/user/:uuid",
 		"/api/createuser",
 		"/api/login",
+		"/api/products",
+		"/api/createProduct",
 	}
 
 	for _, route := range apiRoutes {
