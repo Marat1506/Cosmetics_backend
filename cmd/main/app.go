@@ -54,7 +54,7 @@ func main() {
 	orderService := order.NewService(orderStorage, logger)
 	orderHandler := order.NewHandler(logger, orderService)
 
-	productStorage := productDB.NewStorage(mongoDBClient, cfg.MongoDB.Collection, logger)
+	productStorage := productDB.NewStorage(mongoDBClient, cfg.MongoDB.Products, logger)
 
 	productService := product.NewService(productStorage, logger)
 	productHandler := product.NewHandler(logger, productService)
