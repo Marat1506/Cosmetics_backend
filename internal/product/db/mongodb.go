@@ -31,11 +31,16 @@ func (d *ProductStorage) Create(ctx context.Context, product product.Product) (s
 	return "", fmt.Errorf("failed to convert objectid to hex")
 }
 
-func (d *ProductStorage) GetAll(ctx context.Context) ([]product.Product, error) {
-	d.logger.Debug("get all products")
+func (d *ProductStorage) GetAll(ctx context.Context, category string) ([]product.Product, error) {
+	d.logger.Debugf("get all products, category: %s", category)
+
+	filter := bson.M{}
+	if category != "" {
+		filter["category"] = bson.M{"$regex": primitive.Regex{Pattern: "^" + category + "$", Options: "i"}}
+	}
 
 	opts := options.Find().SetSort(bson.D{{"name", 1}})
-	cursor, err := d.collection.Find(ctx, bson.M{}, opts)
+	cursor, err := d.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find products: %v", err)
 	}

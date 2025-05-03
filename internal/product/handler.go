@@ -51,7 +51,8 @@ func (h *handler) CreateProduct(w http.ResponseWriter, r *http.Request, params h
 }
 
 func (h *handler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := h.service.GetAll(r.Context())
+	category := r.URL.Query().Get("category")
+	products, err := h.service.GetAll(r.Context(), category)
 	if err != nil {
 		h.logger.Error("Failed to get products", err)
 		http.Error(w, "Failed to get products", http.StatusInternalServerError)
