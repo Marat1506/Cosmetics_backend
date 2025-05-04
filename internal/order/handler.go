@@ -14,19 +14,19 @@ const (
 	orderPath  = "/api/orders/:id"
 )
 
-type handler struct {
+type Handler struct {
 	logger  *logging.Logger
 	service *Service
 }
 
 func NewHandler(logger *logging.Logger, service *Service) handlers.Handler {
-	return &handler{
+	return &Handler{
 		logger:  logger,
 		service: service,
 	}
 }
 
-func (h *handler) Register(router *httprouter.Router) {
+func (h *Handler) Register(router *httprouter.Router) {
 	router.POST(ordersPath, h.CreateOrder)
 	router.GET(ordersPath+"/user/:userId", h.GetUserOrders)
 	router.GET(orderPath, h.GetOrder)
@@ -54,7 +54,7 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request, _ httprout
 	json.NewEncoder(w).Encode(map[string]string{"id": orderID})
 }
 
-func (h *handler) GetUserOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (h *Handler) GetUserOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	userID := ps.ByName("userId")
 	if userID == "" {
 		http.Error(w, "User ID is required", http.StatusBadRequest)
@@ -72,7 +72,7 @@ func (h *handler) GetUserOrders(w http.ResponseWriter, r *http.Request, ps httpr
 	json.NewEncoder(w).Encode(orders)
 }
 
-func (h *handler) GetOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (h *Handler) GetOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	orderID := ps.ByName("id")
 	if orderID == "" {
 		http.Error(w, "Order ID is required", http.StatusBadRequest)
@@ -90,7 +90,7 @@ func (h *handler) GetOrder(w http.ResponseWriter, r *http.Request, ps httprouter
 	json.NewEncoder(w).Encode(order)
 }
 
-func (h *handler) UpdateStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	orderID := ps.ByName("id")
 	if orderID == "" {
 		http.Error(w, "Order ID is required", http.StatusBadRequest)
@@ -113,7 +113,7 @@ func (h *handler) UpdateStatus(w http.ResponseWriter, r *http.Request, ps httpro
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *handler) CancelOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (h *Handler) CancelOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	orderID := ps.ByName("id")
 	if orderID == "" {
 		http.Error(w, "Order ID is required", http.StatusBadRequest)
