@@ -1,15 +1,29 @@
 package order
 
+import "time"
+
 type Order struct {
-	ID           string `json:"id" bson:"_id,omitempty"`
-	Username     string `json:"username" bson:"username"`
-	Phone        string `json:"phone" bson:"phone"`
-	TelegramNick string `json:"telegram_nick" bson:"telegram_nick"`
-	Completed    bool   `json:"completed" bson:"completed"`
+	ID         string    `json:"id" bson:"_id,omitempty"`
+	UserID     string    `json:"userId" bson:"userId"`
+	Products   []Product `json:"products" bson:"products"`
+	Status     string    `json:"status" bson:"status"`
+	CreatedAt  time.Time `json:"createdAt" bson:"createdAt"`
+	TotalPrice int       `json:"totalPrice" bson:"totalPrice"`
+}
+
+type Product struct {
+	ID       string `json:"id" bson:"id"`
+	Name     string `json:"name" bson:"name"`
+	Price    int    `json:"price" bson:"price"`
+	Quantity int    `json:"quantity" bson:"quantity"`
 }
 
 type CreateOrderDTO struct {
-	Username     string `json:"username" bson:"username"`
-	Phone        string `json:"phone" bson:"phone"`
-	TelegramNick string `json:"telegram_nick" bson:"telegram_nick"`
+	UserID     string    `json:"userId"`
+	Products   []Product `json:"products"`
+	TotalPrice int       `json:"totalPrice"`
+}
+
+type UpdateStatusDTO struct {
+	Status string `json:"status"`
 }

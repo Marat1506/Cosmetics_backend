@@ -4,40 +4,53 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"server/internal/order"
 	"server/pkg/logging"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type OrderStorage struct {
+type orderStorage struct {
 	collection *mongo.Collection
 	logger     *logging.Logger
 }
 
-func (d *OrderStorage) Create(ctx context.Context, order order.Order) (string, error) {
-	d.logger.Debug("create order")
-	result, err := d.collection.InsertOne(ctx, order)
-
+func (s *orderStorage) Create(ctx context.Context, order order.Order) (string, error) {
+	res, err := s.collection.InsertOne(ctx, order)
 	if err != nil {
-		return "", fmt.Errorf("failed to create order to error: %v", err)
+		return "", fmt.Errorf("failed to create order: %v", err)
 	}
-	d.logger.Debug("convert UnsertedID to ObjectedID")
-	oid, ok := result.InsertedID.(primitive.ObjectID)
 
-	if ok {
-		return oid.Hex(), nil
+	oid, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return "", fmt.Errorf("failed to convert objectid to hex")
 	}
-	d.logger.Trace(order)
-	return "", fmt.Errorf("failed to convert objectid to hex, oid: %s", oid)
+
+	return oid.Hex(), nil
 }
 
-func (d *OrderStorage) GetOrders(ctx context.Context) ([]order.Order, error) {
-	d.logger.Debug("get orders")
-	cursor, err := d.collection.Find(ctx, bson.M{})
+func (s *orderStorage) GetByID(ctx context.Context, id string) (order.Order, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return order.Order{}, fmt.Errorf("failed to convert hex to objectid: %v", err)
+	}
+
+	var o order.Order
+	err = s.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&o)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return order.Order{}, fmt.Errorf("order not found")
+		}
+		return order.Order{}, fmt.Errorf("failed to find order: %v", err)
+	}
+
+	return o, nil
+}
+
+func (s *orderStorage) GetByUserID(ctx context.Context, userID string) ([]order.Order, error) {
+	cursor, err := s.collection.Find(ctx, bson.M{"userId": userID})
 	if err != nil {
 		return nil, fmt.Errorf("failed to find orders: %v", err)
 	}
@@ -47,66 +60,37 @@ func (d *OrderStorage) GetOrders(ctx context.Context) ([]order.Order, error) {
 	if err := cursor.All(ctx, &orders); err != nil {
 		return nil, fmt.Errorf("failed to decode orders: %v", err)
 	}
-	return orders, nil
 
+	return orders, nil
 }
 
-func (d *OrderStorage) ChangeOrder(ctx context.Context, id string) (o order.Order, err error) {
-	d.logger.Debug("change order")
-	fmt.Println("ID = ", id)
+func (s *orderStorage) UpdateStatus(ctx context.Context, id, status string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return order.Order{}, err
+		return fmt.Errorf("failed to convert hex to objectid: %v", err)
 	}
-	result := d.collection.FindOne(ctx, bson.M{"_id": oid})
-	if result.Err() != nil {
-		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
-			return o, fmt.Errorf("not found")
-		}
-		return o, fmt.Errorf("failed to find one user by id: %s due to error: %v", id, err)
 
-	}
-	if err := result.Decode(&o); err != nil {
-		return o, fmt.Errorf("failed to decode user by id: %s due to error: %v", id, err)
-	}
-	fmt.Println("order", o.Completed)
-
-	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
-	newCopleted := !o.Completed
-	err = d.collection.FindOneAndUpdate(
+	_, err = s.collection.UpdateOne(
 		ctx,
 		bson.M{"_id": oid},
-		bson.M{"$set": bson.M{"completed": newCopleted}},
-		opts).Decode(&o)
-
-	if err != nil {
-		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
-			return o, fmt.Errorf("order not found")
-		}
-		return o, fmt.Errorf("failed to update order: %v", err)
-	}
-
-	fmt.Println("update = ", o)
-	return o, nil
+		bson.M{"$set": bson.M{"status": status}},
+	)
+	return err
 }
 
-func (d *OrderStorage) DeleteOrder(ctx context.Context, id string) error {
-	d.logger.Debug("delete order")
+func (s *orderStorage) Cancel(ctx context.Context, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to convert hex to objectid: %v", err)
 	}
-	result := d.collection.FindOneAndDelete(ctx, bson.M{"_id": oid})
-	if result.Err() != nil {
-		return fmt.Errorf("failed to delete order: %v", result.Err())
-	}
-	return nil
+
+	_, err = s.collection.DeleteOne(ctx, bson.M{"_id": oid})
+	return err
 }
 
-func NewStorage(database *mongo.Database, collectionName string, logger *logging.Logger) *OrderStorage {
-	fmt.Println("lllLLL = ", collectionName)
-	return &OrderStorage{
-		collection: database.Collection(collectionName),
+func NewOrderStorage(database *mongo.Database, logger *logging.Logger) order.Storage {
+	return &orderStorage{
+		collection: database.Collection("orders"),
 		logger:     logger,
 	}
 }

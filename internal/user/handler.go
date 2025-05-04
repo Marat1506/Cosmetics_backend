@@ -2,98 +2,187 @@ package user
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"server/handlers"
 	"server/pkg/logging"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 const (
-	getUsers    = "/api/users"
-	getUserById = "/api/user/:uuid"
-	createUser  = "/api/createuser"
-	login       = "/api/login"
+	registerPath  = "/api/auth/register"
+	loginPath     = "/api/auth/login"
+	profilePath   = "/api/user/profile"
+	favoritesPath = "/api/user/favorites"
+	cartPath      = "/api/user/cart"
 )
 
-type handler struct {
+type Handler struct {
 	logger  *logging.Logger
 	service *Service
 }
 
-func NewHandler(logger *logging.Logger, service *Service) handlers.Handler {
-	return &handler{
+func NewHandler(logger *logging.Logger, service *Service) *Handler {
+	return &Handler{
 		logger:  logger,
 		service: service,
 	}
 }
 
-func (h *handler) Register(router *httprouter.Router) {
-	router.HandlerFunc(http.MethodGet, getUsers, h.GetAllUsers)
-	router.GET(getUserById, h.GetUserById)
-	router.POST(createUser, h.CreateUser)
-	router.POST(login, h.Login)
+func (h *Handler) RegisterRouter(router *httprouter.Router) {
+	router.HandlerFunc(http.MethodPost, registerPath, h.RegisterUser)
+	router.HandlerFunc(http.MethodPost, loginPath, h.LoginUser)
+	router.HandlerFunc(http.MethodGet, profilePath, h.GetUserProfile)
+	router.HandlerFunc(http.MethodPost, favoritesPath, h.AddToUserFavorites)
+	router.HandlerFunc(http.MethodDelete, favoritesPath, h.RemoveFromUserFavorites)
+	router.HandlerFunc(http.MethodPost, cartPath, h.AddToUserCart)
+	router.HandlerFunc(http.MethodDelete, cartPath, h.RemoveFromUserCart)
 }
 
-func (h *handler) GetList(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-	w.Write([]byte("this is list of users"))
-}
-
-func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var dto CreateUserDTO
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		h.logger.Error("Failed to decode request body", err)
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		h.logger.Error("Failed to decode request", err)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	userID, err := h.service.CreateUser(r.Context(), dto)
+	userID, err := h.service.Register(r.Context(), dto)
 	if err != nil {
-		h.logger.Error("Failed to create user", err)
-		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		h.logger.Error("Failed to register user", err)
+		http.Error(w, "Failed to register", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"id": userID})
 }
 
-func (h *handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.service.GetAllUsers(r.Context())
-
-	if err != nil {
-		h.logger.Error("failed to get all users")
-		http.Error(w, "failed to get all users", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(users)
-}
-
-func (h *handler) GetUserById(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	fmt.Println("id = ", r.Body)
-}
-
-func (h *handler) Login(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var dto LoginDTO
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		h.logger.Error("ошибка входе", err)
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		h.logger.Error("Failed to decode request", err)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
 	user, err := h.service.Login(r.Context(), dto)
 	if err != nil {
-		h.logger.Error("ошибка при входу", err)
-		http.Error(w, "Ошибка:", http.StatusInternalServerError)
+		h.logger.Error("Failed to login", err)
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	fmt.Println("user login = ", user)
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]User{"user": user})
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
 
+func (h *Handler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := h.service.GetProfile(r.Context(), userID)
+	if err != nil {
+		h.logger.Error("Failed to get profile", err)
+		http.Error(w, "Failed to get profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
+func (h *Handler) AddToUserFavorites(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var dto UpdateFavoritesDTO
+	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
+		h.logger.Error("Failed to decode request", err)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.AddToFavorites(r.Context(), userID, dto.ProductID); err != nil {
+		h.logger.Error("Failed to add to favorites", err)
+		http.Error(w, "Failed to add to favorites", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) RemoveFromUserFavorites(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var dto UpdateFavoritesDTO
+	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
+		h.logger.Error("Failed to decode request", err)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.RemoveFromFavorites(r.Context(), userID, dto.ProductID); err != nil {
+		h.logger.Error("Failed to remove from favorites", err)
+		http.Error(w, "Failed to remove from favorites", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) AddToUserCart(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var dto UpdateCartDTO
+	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
+		h.logger.Error("Failed to decode request", err)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.AddToCart(r.Context(), userID, dto.ProductID); err != nil {
+		h.logger.Error("Failed to add to cart", err)
+		http.Error(w, "Failed to add to cart", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) RemoveFromUserCart(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var dto UpdateCartDTO
+	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
+		h.logger.Error("Failed to decode request", err)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.RemoveFromCart(r.Context(), userID, dto.ProductID); err != nil {
+		h.logger.Error("Failed to remove from cart", err)
+		http.Error(w, "Failed to remove from cart", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
