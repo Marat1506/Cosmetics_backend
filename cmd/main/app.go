@@ -106,6 +106,7 @@ func isAPIRequest(path string) bool {
 		"/api/login",
 		"/api/products",
 		"/api/createProduct",
+		"/api/user/:userID/favorites",
 		"/api/user/:userID/favorites/add",
 		"/api/user/:userID/favorites/remove",
 		"/api/user/:userID/cart/add",
