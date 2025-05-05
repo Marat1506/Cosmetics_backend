@@ -21,7 +21,9 @@ func (s *Service) CreateUser(ctx context.Context, dto CreateUserDTO) (string, er
 	user := User{
 		Email:        dto.Email,
 		Username:     dto.Username,
-		PasswordHash: dto.Password, // В реальном приложении здесь должен быть хэш пароля
+		PasswordHash: dto.Password,
+		Favorites:    []string{},
+		Cart:         []string{},
 	}
 	return s.storage.Create(ctx, user)
 }
@@ -32,4 +34,24 @@ func (s *Service) GetAllUsers(ctx context.Context) ([]User, error) {
 
 func (s *Service) Login(ctx context.Context, dto LoginDTO) (User, error) {
 	return s.storage.Login(ctx, dto.Email, dto.Password)
+}
+
+func (s *Service) AddToFavorites(ctx context.Context, userID string, productID string) error {
+	return s.storage.AddToFavorites(ctx, userID, productID)
+}
+
+func (s *Service) RemoveFromFavorites(ctx context.Context, userID string, productID string) error {
+	return s.storage.RemoveFromFavorites(ctx, userID, productID)
+}
+
+func (s *Service) AddToCart(ctx context.Context, userID string, productID string) error {
+	return s.storage.AddToCart(ctx, userID, productID)
+}
+
+func (s *Service) RemoveFromCart(ctx context.Context, userID string, productID string) error {
+	return s.storage.RemoveFromCart(ctx, userID, productID)
+}
+
+func (s *Service) UpdateCart(ctx context.Context, userID string, cart []string) error {
+	return s.storage.UpdateCart(ctx, userID, cart)
 }

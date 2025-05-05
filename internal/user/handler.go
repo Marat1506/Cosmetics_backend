@@ -34,8 +34,13 @@ func (h *handler) Register(router *httprouter.Router) {
 	router.GET(getUserById, h.GetUserById)
 	router.POST(createUser, h.CreateUser)
 	router.POST(login, h.Login)
-}
 
+	router.POST("/api/user/:userID/favorites/add", h.AddToFavorites)
+	router.POST("/api/user/:userID/favorites/remove", h.RemoveFromFavorites)
+	router.POST("/api/user/:userID/cart/add", h.AddToCart)
+	router.POST("/api/user/:userID/cart/remove", h.RemoveFromCart)
+	router.POST("/api/user/:userID/cart/update", h.UpdateCart)
+}
 func (h *handler) GetList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("this is list of users"))
@@ -96,4 +101,131 @@ func (h *handler) Login(w http.ResponseWriter, r *http.Request, params httproute
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]User{"user": user})
 
+}
+
+// Добавляем новые методы в структуру handler
+
+func (h *handler) AddToFavorites(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		ProductID string `json:"productId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("Failed to decode request body", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.AddToFavorites(r.Context(), userID, request.ProductID); err != nil {
+		h.logger.Error("Failed to add to favorites", err)
+		http.Error(w, "Failed to add to favorites", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *handler) RemoveFromFavorites(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		ProductID string `json:"productId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("Failed to decode request body", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.RemoveFromFavorites(r.Context(), userID, request.ProductID); err != nil {
+		h.logger.Error("Failed to remove from favorites", err)
+		http.Error(w, "Failed to remove from favorites", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *handler) AddToCart(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		ProductID string `json:"productId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("Failed to decode request body", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.AddToCart(r.Context(), userID, request.ProductID); err != nil {
+		h.logger.Error("Failed to add to cart", err)
+		http.Error(w, "Failed to add to cart", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *handler) RemoveFromCart(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		ProductID string `json:"productId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("Failed to decode request body", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.RemoveFromCart(r.Context(), userID, request.ProductID); err != nil {
+		h.logger.Error("Failed to remove from cart", err)
+		http.Error(w, "Failed to remove from cart", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *handler) UpdateCart(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		Cart []string `json:"cart"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("Failed to decode request body", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.UpdateCart(r.Context(), userID, request.Cart); err != nil {
+		h.logger.Error("Failed to update cart", err)
+		http.Error(w, "Failed to update cart", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

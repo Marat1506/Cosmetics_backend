@@ -86,6 +86,105 @@ func (d *db) Login(ctx context.Context, email string, password string) (u user.U
 	return u, nil
 }
 
+func (d *db) AddToFavorites(ctx context.Context, userID string, productID string) error {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("failed to convert hex to objectedid, hex: %s", userID)
+	}
+
+	filter := bson.M{"_id": oid}
+	update := bson.M{"$addToSet": bson.M{"favorites": productID}}
+
+	result, err := d.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to add to favorites: %v", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+func (d *db) RemoveFromFavorites(ctx context.Context, userID string, productID string) error {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("failed to convert hex to objectedid, hex: %s", userID)
+	}
+
+	filter := bson.M{"_id": oid}
+	update := bson.M{"$pull": bson.M{"favorites": productID}}
+
+	result, err := d.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to remove from favorites: %v", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+func (d *db) AddToCart(ctx context.Context, userID string, productID string) error {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("failed to convert hex to objectedid, hex: %s", userID)
+	}
+
+	filter := bson.M{"_id": oid}
+	update := bson.M{"$addToSet": bson.M{"cart": productID}}
+
+	result, err := d.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to add to cart: %v", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+func (d *db) RemoveFromCart(ctx context.Context, userID string, productID string) error {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("failed to convert hex to objectedid, hex: %s", userID)
+	}
+
+	filter := bson.M{"_id": oid}
+	update := bson.M{"$pull": bson.M{"cart": productID}}
+
+	result, err := d.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to remove from cart: %v", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+func (d *db) UpdateCart(ctx context.Context, userID string, cart []string) error {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("failed to convert hex to objectedid, hex: %s", userID)
+	}
+
+	filter := bson.M{"_id": oid}
+	update := bson.M{"$set": bson.M{"cart": cart}}
+
+	result, err := d.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to update cart: %v", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
 func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) user.Storage {
 	return &db{
 		collection: database.Collection(collection),

@@ -17,6 +17,7 @@ import (
 	"server/internal/user/db"
 	"server/pkg/client/mongodb"
 	"server/pkg/logging"
+	"strings"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -105,9 +106,17 @@ func isAPIRequest(path string) bool {
 		"/api/login",
 		"/api/products",
 		"/api/createProduct",
+		"/api/user/:userID/favorites/add",
+		"/api/user/:userID/favorites/remove",
+		"/api/user/:userID/cart/add",
+		"/api/user/:userID/cart/remove",
+		"/api/user/:userID/cart/update",
 	}
 
 	for _, route := range apiRoutes {
+		if strings.HasPrefix(path, "/api/user/") && (strings.Contains(path, "/favorites/") || strings.Contains(path, "/cart/")) {
+			return true
+		}
 		if path == route {
 			return true
 		}
