@@ -47,6 +47,9 @@ func (s *Service) RemoveFromFavorites(ctx context.Context, userID string, produc
 func (s *Service) AddToCart(ctx context.Context, userID string, productID string) error {
 	return s.storage.AddToCart(ctx, userID, productID)
 }
+func (s *Service) GetFavorites(ctx context.Context, userID string) ([]string, error) {
+	return s.storage.GetFavorites(ctx, userID)
+}
 
 func (s *Service) RemoveFromCart(ctx context.Context, userID string, productID string) error {
 	return s.storage.RemoveFromCart(ctx, userID, productID)

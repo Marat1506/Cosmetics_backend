@@ -40,6 +40,8 @@ func (h *handler) Register(router *httprouter.Router) {
 	router.POST("/api/user/:userID/cart/add", h.AddToCart)
 	router.POST("/api/user/:userID/cart/remove", h.RemoveFromCart)
 	router.POST("/api/user/:userID/cart/update", h.UpdateCart)
+	router.GET("/api/user/:userID/favorites", h.GetFavorites)
+
 }
 func (h *handler) GetList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
@@ -128,6 +130,23 @@ func (h *handler) AddToFavorites(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+func (h *handler) GetFavorites(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	favorites, err := h.service.GetFavorites(r.Context(), userID)
+	if err != nil {
+		h.logger.Error("Failed to get favorites", err)
+		http.Error(w, "Failed to get favorites", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string][]string{"favorites": favorites})
 }
 
 func (h *handler) RemoveFromFavorites(w http.ResponseWriter, r *http.Request, params httprouter.Params) {

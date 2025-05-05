@@ -185,6 +185,21 @@ func (d *db) UpdateCart(ctx context.Context, userID string, cart []string) error
 
 	return nil
 }
+
+func (d *db) GetFavorites(ctx context.Context, userID string) ([]string, error) {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert userID to objectID: %v", err)
+	}
+
+	var u user.User
+	if err := d.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&u); err != nil {
+		return nil, fmt.Errorf("failed to find user or decode: %v", err)
+	}
+
+	return u.Favorites, nil
+}
+
 func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) user.Storage {
 	return &db{
 		collection: database.Collection(collection),
