@@ -133,24 +133,26 @@ func (h *handler) AddToFavorites(w http.ResponseWriter, r *http.Request, params 
 }
 func (h *handler) GetFavorites(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	userID := params.ByName("userID")
-	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
-		return
-	}
+	h.logger.Infof("Обработка запроса для userID: %s", userID)
 
 	favorites, err := h.service.GetFavorites(r.Context(), userID)
 	if err != nil {
-		h.logger.Errorf("Failed to get favorites: %v", err)
-		http.Error(w, "Failed to get favorites", http.StatusInternalServerError)
+		h.logger.Errorf("Ошибка: %v", err)
+		http.Error(w, "Не удалось получить избранное", http.StatusInternalServerError)
 		return
 	}
 
-	h.logger.Debugf("Returning favorites for user %s: %v", userID, favorites)
+	// Всегда возвращаем массив, даже если он пустой
+	response := map[string]interface{}{
+		"success":   true,
+		"favorites": favorites,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"favorites": favorites,
-	})
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Errorf("Ошибка при отправке ответа: %v", err)
+	}
 }
 
 func (h *handler) RemoveFromFavorites(w http.ResponseWriter, r *http.Request, params httprouter.Params) {

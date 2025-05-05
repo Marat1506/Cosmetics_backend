@@ -187,19 +187,29 @@ func (d *db) UpdateCart(ctx context.Context, userID string, cart []string) error
 }
 
 func (d *db) GetFavorites(ctx context.Context, userID string) ([]string, error) {
+	fmt.Print("GetFavorites = ", userID)
+	d.logger.Infof("Запрос избранного для userID: %s", userID)
+
 	oid, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		d.logger.Errorf("failed to convert userID to objectID: %v", err)
-		return nil, fmt.Errorf("failed to convert userID to objectID: %v", err)
+		d.logger.Errorf("Ошибка конвертации userID: %v", err)
+		return nil, fmt.Errorf("неверный ID пользователя")
 	}
 
 	var u user.User
-	if err := d.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&u); err != nil {
-		d.logger.Errorf("failed to find user or decode: %v", err)
-		return nil, fmt.Errorf("failed to find user or decode: %v", err)
+	err = d.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&u)
+	if err != nil {
+		d.logger.Errorf("Пользователь не найден: %v", err)
+		return nil, fmt.Errorf("пользователь не найден")
 	}
 
-	d.logger.Debugf("Retrieved favorites for user %s: %v", userID, u.Favorites)
+	// Если favorites == nil, возвращаем пустой массив
+	if u.Favorites == nil {
+		d.logger.Info("Поле favorites отсутствует, возвращаем []")
+		return []string{}, nil
+	}
+
+	d.logger.Infof("Найдены избранные товары: %v", u.Favorites)
 	return u.Favorites, nil
 }
 

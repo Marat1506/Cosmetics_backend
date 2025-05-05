@@ -115,13 +115,30 @@ func isAPIRequest(path string) bool {
 	}
 
 	for _, route := range apiRoutes {
-		if strings.HasPrefix(path, "/api/user/") && (strings.Contains(path, "/favorites/") || strings.Contains(path, "/cart/")) {
-			return true
+		// Разбиваем путь и маршрут на сегменты
+		pathSegments := strings.Split(path, "/")
+		routeSegments := strings.Split(route, "/")
+
+		if len(pathSegments) != len(routeSegments) {
+			continue
 		}
-		if path == route {
+
+		match := true
+		for i := 0; i < len(routeSegments); i++ {
+			if strings.HasPrefix(routeSegments[i], ":") {
+				continue // Параметр - пропускаем проверку
+			}
+			if routeSegments[i] != pathSegments[i] {
+				match = false
+				break
+			}
+		}
+
+		if match {
 			return true
 		}
 	}
+
 	return false
 }
 
