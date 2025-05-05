@@ -12,7 +12,7 @@ import (
 
 const (
 	getUsers    = "/api/users"
-	getUserById = "/api/user/:uuid"
+	getUserById = "/api/users/:uuid"
 	createUser  = "/api/createuser"
 	login       = "/api/login"
 )

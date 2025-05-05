@@ -101,7 +101,7 @@ func isAPIRequest(path string) bool {
 		"/api/changeOrder",
 		"/api/deleteOrder",
 		"/api/users",
-		"/api/user/:uuid",
+		"/api/users/:uuid",
 		"/api/createuser",
 		"/api/login",
 		"/api/products",
