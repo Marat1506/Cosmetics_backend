@@ -3,7 +3,6 @@ package order
 import (
 	"context"
 	"server/pkg/logging"
-	"time"
 )
 
 type Service struct {
@@ -20,28 +19,33 @@ func NewService(storage Storage, logger *logging.Logger) *Service {
 
 func (s *Service) CreateOrder(ctx context.Context, dto CreateOrderDTO) (string, error) {
 	order := Order{
-		UserID:     dto.UserID,
-		Products:   dto.Products,
-		TotalPrice: dto.TotalPrice,
-		Status:     "created",
-		CreatedAt:  time.Now(),
+		Username:     dto.Username,
+		Phone:        dto.Phone,
+		TelegramNick: dto.TelegramNick,
+		Completed:    false,
 	}
 
 	return s.storage.Create(ctx, order)
 }
 
-func (s *Service) GetOrder(ctx context.Context, id string) (Order, error) {
-	return s.storage.GetByID(ctx, id)
+func (s *Service) GetOrders(ctx context.Context) ([]Order, error) {
+
+	orders, err := s.storage.GetOrders(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return orders, nil
 }
 
-func (s *Service) GetUserOrders(ctx context.Context, userID string) ([]Order, error) {
-	return s.storage.GetByUserID(ctx, userID)
+func (s *Service) ChangeOrder(ctx context.Context, id string) (Order, error) {
+	orders, err := s.storage.ChangeOrder(ctx, id)
+	if err != nil {
+		return Order{}, err
+	}
+	return orders, nil
 }
 
-func (s *Service) UpdateStatus(ctx context.Context, id, status string) error {
-	return s.storage.UpdateStatus(ctx, id, status)
-}
+func (s *Service) DeleteOrder(ctx context.Context, id string) error {
+	return s.storage.DeleteOrder(ctx, id)
 
-func (s *Service) CancelOrder(ctx context.Context, id string) error {
-	return s.storage.Cancel(ctx, id)
 }

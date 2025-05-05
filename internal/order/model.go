@@ -1,29 +1,15 @@
 package order
 
-import "time"
-
 type Order struct {
-	ID         string    `json:"id" bson:"_id,omitempty"`
-	UserID     string    `json:"userId" bson:"userId"`
-	Products   []Product `json:"products" bson:"products"`
-	Status     string    `json:"status" bson:"status"`
-	CreatedAt  time.Time `json:"createdAt" bson:"createdAt"`
-	TotalPrice int       `json:"totalPrice" bson:"totalPrice"`
+	ID         string   `json:"id" bson:"id"`                 // ID заказа
+	Products   []string `json:"products" bson:"products"`     // Массив ID товаров
+	Status     string   `json:"status" bson:"status"`         // Статус заказа
+	CreatedAt  int64    `json:"createdAt" bson:"createdAt"`   // Временная метка создания
+	TotalPrice int      `json:"totalPrice" bson:"totalPrice"` // Общая сумма заказа
 }
 
-type Product struct {
-	ID       string `json:"id" bson:"id"`
-	Name     string `json:"name" bson:"name"`
-	Price    int    `json:"price" bson:"price"`
-	Quantity int    `json:"quantity" bson:"quantity"`
-}
-
-type CreateOrderDTO struct {
-	UserID     string    `json:"userId"`
-	Products   []Product `json:"products"`
-	TotalPrice int       `json:"totalPrice"`
-}
-
-type UpdateStatusDTO struct {
-	Status string `json:"status"`
+type CreateUserDTO struct {
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }

@@ -10,121 +10,96 @@ import (
 )
 
 const (
-	ordersPath = "/api/orders"
-	orderPath  = "/api/orders/:id"
+	createOrder = "/api/createOrder"
+	getOrders   = "/api/getOrders"
+	changeOrder = "/api/changeOrder"
+	deleteOrder = "/api/deleteOrder"
 )
 
-type Handler struct {
+type handler struct {
 	logger  *logging.Logger
 	service *Service
 }
 
 func NewHandler(logger *logging.Logger, service *Service) handlers.Handler {
-	return &Handler{
+	return &handler{
 		logger:  logger,
 		service: service,
 	}
 }
 
-func (h *Handler) Register(router *httprouter.Router) {
-	router.POST(ordersPath, h.CreateOrder)
-	router.GET(ordersPath+"/user/:userId", h.GetUserOrders)
-	router.GET(orderPath, h.GetOrder)
-	router.PUT(orderPath+"/status", h.UpdateStatus)
-	router.DELETE(orderPath, h.CancelOrder)
+func (h *handler) Register(router *httprouter.Router) {
+	router.POST(createOrder, h.CreateOrder)
+	router.HandlerFunc(http.MethodGet, getOrders, h.GetOrders)
+	router.PATCH(changeOrder, h.ChangeOrder)
+	router.DELETE(deleteOrder, h.DeleteOrder)
 }
 
-func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *handler) CreateOrder(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	var dto CreateOrderDTO
 	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		h.logger.Error("Failed to decode request", err)
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		h.logger.Error("Failed to decode request body", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	orderID, err := h.service.CreateOrder(r.Context(), dto)
 	if err != nil {
-		h.logger.Error("Failed to create order", err)
-		http.Error(w, "Failed to create order", http.StatusInternalServerError)
+		h.logger.Error("Failed to create user", err)
+		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"id": orderID})
 }
 
-func (h *Handler) GetUserOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	userID := ps.ByName("userId")
-	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
-		return
-	}
+func (h *handler) GetOrders(w http.ResponseWriter, r *http.Request) {
+	orders, err := h.service.GetOrders(r.Context())
 
-	orders, err := h.service.GetUserOrders(r.Context(), userID)
 	if err != nil {
-		h.logger.Error("Failed to get user orders", err)
+		h.logger.Error("Failed to get orders", err)
 		http.Error(w, "Failed to get orders", http.StatusInternalServerError)
 		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(orders)
+
+}
+func (h *handler) DeleteOrder(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	var requestData struct {
+		Id string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		h.logger.Error("Failed to decode request body", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := h.service.DeleteOrder(r.Context(), requestData.Id); err != nil {
+		h.logger.Error("Failed to delete order", err)
+		http.Error(w, "Failed to delete order", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]bool{"deleted": true})
 }
 
-func (h *Handler) GetOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	orderID := ps.ByName("id")
-	if orderID == "" {
-		http.Error(w, "Order ID is required", http.StatusBadRequest)
+func (h *handler) ChangeOrder(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var requestData struct {
+		ID string `json:"id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	order, err := h.service.GetOrder(r.Context(), orderID)
+	order, err := h.service.ChangeOrder(r.Context(), requestData.ID)
 	if err != nil {
-		h.logger.Error("Failed to get order", err)
-		http.Error(w, "Failed to get order", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(order)
-}
-
-func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	orderID := ps.ByName("id")
-	if orderID == "" {
-		http.Error(w, "Order ID is required", http.StatusBadRequest)
-		return
-	}
-
-	var dto UpdateStatusDTO
-	if err := json.NewDecoder(r.Body).Decode(&dto); err != nil {
-		h.logger.Error("Failed to decode request", err)
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.service.UpdateStatus(r.Context(), orderID, dto.Status); err != nil {
-		h.logger.Error("Failed to update status", err)
-		http.Error(w, "Failed to update status", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func (h *Handler) CancelOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	orderID := ps.ByName("id")
-	if orderID == "" {
-		http.Error(w, "Order ID is required", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.service.CancelOrder(r.Context(), orderID); err != nil {
-		h.logger.Error("Failed to cancel order", err)
-		http.Error(w, "Failed to cancel order", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }
