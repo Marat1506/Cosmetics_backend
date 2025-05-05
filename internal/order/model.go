@@ -1,15 +1,15 @@
 package order
 
 type Order struct {
-	ID         string   `json:"id" bson:"id"`                 // ID заказа
-	Products   []string `json:"products" bson:"products"`     // Массив ID товаров
-	Status     string   `json:"status" bson:"status"`         // Статус заказа
-	CreatedAt  int64    `json:"createdAt" bson:"createdAt"`   // Временная метка создания
-	TotalPrice int      `json:"totalPrice" bson:"totalPrice"` // Общая сумма заказа
+	ID           string `json:"id" bson:"_id,omitempty"`
+	Username     string `json:"username" bson:"username"`
+	Phone        string `json:"phone" bson:"phone"`
+	TelegramNick string `json:"telegram_nick" bson:"telegram_nick"`
+	Completed    bool   `json:"completed" bson:"completed"`
 }
 
-type CreateUserDTO struct {
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+type CreateOrderDTO struct {
+	Username     string `json:"username" bson:"username"`
+	Phone        string `json:"phone" bson:"phone"`
+	TelegramNick string `json:"telegram_nick" bson:"telegram_nick"`
 }

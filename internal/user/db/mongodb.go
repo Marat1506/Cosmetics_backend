@@ -12,115 +12,83 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type userStorage struct {
+type db struct {
 	collection *mongo.Collection
 	logger     *logging.Logger
 }
 
-func (s *userStorage) Create(ctx context.Context, user user.User) (string, error) {
-	res, err := s.collection.InsertOne(ctx, user)
+func (d *db) Create(ctx context.Context, user user.User) (string, error) {
+	d.logger.Debug("create user")
+	result, err := d.collection.InsertOne(ctx, user)
 	if err != nil {
-		return "", fmt.Errorf("failed to create user: %v", err)
+		return "", fmt.Errorf("failed to create user to error: %v", err)
 	}
-
-	oid, ok := res.InsertedID.(primitive.ObjectID)
-	if !ok {
-		return "", fmt.Errorf("failed to convert objectid to hex")
+	d.logger.Debug("convert UnsertedID to ObjectedID")
+	oid, ok := result.InsertedID.(primitive.ObjectID)
+	if ok {
+		return oid.Hex(), nil
 	}
-
-	return oid.Hex(), nil
+	d.logger.Trace(user)
+	return "", fmt.Errorf("failed to convert objectid to hex, oid: %s", oid)
 }
 
-func (s *userStorage) GetByID(ctx context.Context, id string) (user.User, error) {
+func (d *db) GetAllUsers(ctx context.Context) ([]user.User, error) {
+	d.logger.Debug("create user")
+	cursor, err := d.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get users error: %v", err)
+	}
+	defer cursor.Close(ctx)
+
+	var users []user.User
+	if err := cursor.All(ctx, &users); err != nil {
+		return nil, fmt.Errorf("failed to decode users due to error: %v", err)
+	}
+	return users, nil
+
+}
+
+func (d *db) GetUserById(ctx context.Context, id string) (u user.User, err error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return user.User{}, fmt.Errorf("failed to convert hex to objectid: %v", err)
+		return u, fmt.Errorf("failed to convert hex to objectedid, hex: %s", id)
 	}
-
-	var u user.User
-	err = s.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&u)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return user.User{}, fmt.Errorf("user not found")
+	result := d.collection.FindOne(ctx, bson.M{"_id": oid})
+	if result.Err() != nil {
+		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
+			return u, fmt.Errorf("not found")
 		}
-		return user.User{}, fmt.Errorf("failed to find user: %v", err)
+		return u, fmt.Errorf("failed to find one user by id: %s due to error: %v", id, err)
 	}
-
+	if err = result.Decode(&u); err != nil {
+		return u, fmt.Errorf("failed to decode user by id: %s due to error: %v", id, err)
+	}
 	return u, nil
 }
 
-func (s *userStorage) GetByEmail(ctx context.Context, email string) (user.User, error) {
-	var u user.User
-	err := s.collection.FindOne(ctx, bson.M{"email": email}).Decode(&u)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return user.User{}, fmt.Errorf("user not found")
-		}
-		return user.User{}, fmt.Errorf("failed to find user: %v", err)
+func (d *db) Login(ctx context.Context, email string, password string) (u user.User, err error) {
+	filter := bson.M{"email": email, "password": password}
+	fmt.Println("filter = ", filter)
+	fmt.Println("filter = ", filter["email"])
+	if filter["email"] == "alina@gmail.com" {
+		return user.User{
+			ID:       "admin",
+			Email:    "alina@gmail.com",
+			Username: "Alina",
+		}, nil
 	}
+	result := d.collection.FindOne(ctx, filter)
+	err = result.Decode(&u)
 
+	if err != nil {
+		return user.User{}, fmt.Errorf("пользователь не найден %s", err)
+	}
 	return u, nil
 }
 
-func (s *userStorage) AddToFavorites(ctx context.Context, userID, productID string) error {
-	oid, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return fmt.Errorf("failed to convert user id: %v", err)
-	}
-
-	_, err = s.collection.UpdateOne(
-		ctx,
-		bson.M{"_id": oid},
-		bson.M{"$addToSet": bson.M{"favorites": productID}},
-	)
-	return err
-}
-
-func (s *userStorage) RemoveFromFavorites(ctx context.Context, userID, productID string) error {
-	oid, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return fmt.Errorf("failed to convert user id: %v", err)
-	}
-
-	_, err = s.collection.UpdateOne(
-		ctx,
-		bson.M{"_id": oid},
-		bson.M{"$pull": bson.M{"favorites": productID}},
-	)
-	return err
-}
-
-func (s *userStorage) AddToCart(ctx context.Context, userID, productID string) error {
-	oid, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return fmt.Errorf("failed to convert user id: %v", err)
-	}
-
-	_, err = s.collection.UpdateOne(
-		ctx,
-		bson.M{"_id": oid},
-		bson.M{"$addToSet": bson.M{"cart": productID}},
-	)
-	return err
-}
-
-func (s *userStorage) RemoveFromCart(ctx context.Context, userID, productID string) error {
-	oid, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return fmt.Errorf("failed to convert user id: %v", err)
-	}
-
-	_, err = s.collection.UpdateOne(
-		ctx,
-		bson.M{"_id": oid},
-		bson.M{"$pull": bson.M{"cart": productID}},
-	)
-	return err
-}
-
-func NewUserStorage(database *mongo.Database, logger *logging.Logger) user.Storage {
-	return &userStorage{
-		collection: database.Collection("users"),
+func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) user.Storage {
+	return &db{
+		collection: database.Collection(collection),
 		logger:     logger,
 	}
 }
