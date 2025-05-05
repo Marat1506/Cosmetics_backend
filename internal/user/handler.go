@@ -140,13 +140,17 @@ func (h *handler) GetFavorites(w http.ResponseWriter, r *http.Request, params ht
 
 	favorites, err := h.service.GetFavorites(r.Context(), userID)
 	if err != nil {
-		h.logger.Error("Failed to get favorites", err)
+		h.logger.Errorf("Failed to get favorites: %v", err)
 		http.Error(w, "Failed to get favorites", http.StatusInternalServerError)
 		return
 	}
 
+	h.logger.Debugf("Returning favorites for user %s: %v", userID, favorites)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string][]string{"favorites": favorites})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"favorites": favorites,
+	})
 }
 
 func (h *handler) RemoveFromFavorites(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
