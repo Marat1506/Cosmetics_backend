@@ -12,4 +12,5 @@ type Storage interface {
 	AddToCart(ctx context.Context, userID string, productID string) error
 	RemoveFromCart(ctx context.Context, userID string, productID string) error
 	UpdateCart(ctx context.Context, userID string, cart []string) error
+	GetFavorites(ctx context.Context, userID string) ([]string, error)
 }
