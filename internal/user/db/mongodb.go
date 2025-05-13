@@ -213,6 +213,31 @@ func (d *db) GetFavorites(ctx context.Context, userID string) ([]string, error) 
 	return u.Favorites, nil
 }
 
+func (d *db) GetCart(ctx context.Context, userID string) ([]string, error) {
+	d.logger.Infof("Запрос корзины для userID: %s", userID)
+
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		d.logger.Errorf("Ошибка конвертации userID: %v", err)
+		return nil, fmt.Errorf("неверный ID пользователя")
+	}
+
+	var u user.User
+	err = d.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&u)
+	if err != nil {
+		d.logger.Errorf("Пользователь не найден: %v", err)
+		return nil, fmt.Errorf("пользователь не найден")
+	}
+
+	if u.Cart == nil {
+		d.logger.Info("Поле cart отсутствует, возвращаем []")
+		return []string{}, nil
+	}
+
+	d.logger.Infof("Найдены товары в корзине: %v", u.Cart)
+	return u.Cart, nil
+}
+
 func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) user.Storage {
 	return &db{
 		collection: database.Collection(collection),

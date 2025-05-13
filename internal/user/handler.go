@@ -41,6 +41,7 @@ func (h *handler) Register(router *httprouter.Router) {
 	router.POST("/api/user/:userID/cart/remove", h.RemoveFromCart)
 	router.POST("/api/user/:userID/cart/update", h.UpdateCart)
 	router.GET("/api/user/:userID/favorites", h.GetFavorites)
+	router.GET("/api/user/:userID/cart", h.GetCart)
 
 }
 func (h *handler) GetList(w http.ResponseWriter, r *http.Request) {
@@ -146,6 +147,28 @@ func (h *handler) GetFavorites(w http.ResponseWriter, r *http.Request, params ht
 	response := map[string]interface{}{
 		"success":   true,
 		"favorites": favorites,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Errorf("Ошибка при отправке ответа: %v", err)
+	}
+}
+func (h *handler) GetCart(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	h.logger.Infof("Обработка запроса корзины для userID: %s", userID)
+
+	cart, err := h.service.GetCart(r.Context(), userID)
+	if err != nil {
+		h.logger.Errorf("Ошибка: %v", err)
+		http.Error(w, "Не удалось получить корзину", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+		"cart":    cart,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -112,6 +112,7 @@ func isAPIRequest(path string) bool {
 		"/api/user/:userID/cart/add",
 		"/api/user/:userID/cart/remove",
 		"/api/user/:userID/cart/update",
+		"/api/user/:userID/cart",
 	}
 
 	for _, route := range apiRoutes {
