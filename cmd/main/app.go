@@ -9,8 +9,6 @@ import (
 	"path"
 	"path/filepath"
 	"server/internal/config"
-	"server/internal/order"
-	orderDB "server/internal/order/db"
 	"server/internal/product"
 	productDB "server/internal/product/db"
 	"server/internal/user"
@@ -51,17 +49,17 @@ func main() {
 
 	fmt.Println("Config OrdersCollection =", cfg.MongoDB.OrdersCollection)
 
-	orderStorage := orderDB.NewStorage(mongoDBClient, cfg.MongoDB.OrdersCollection, logger)
-	orderService := order.NewService(orderStorage, logger)
-	orderHandler := order.NewHandler(logger, orderService)
+	//orderStorage := orderDB.NewStorage(mongoDBClient, cfg.MongoDB.OrdersCollection, logger)
+	//orderService := order.NewService(orderStorage, logger)
+	//orderHandler := order.NewHandler(logger, orderService)
 
 	productStorage := productDB.NewStorage(mongoDBClient, cfg.MongoDB.Products, logger)
 
 	productService := product.NewService(productStorage, logger)
 	productHandler := product.NewHandler(logger, productService)
 
-	logger.Info("register order handler ")
-	orderHandler.Register(router)
+	//logger.Info("register order handler ")
+	//orderHandler.Register(router)
 
 	logger.Info("register user handler")
 	userHandler.Register(router)
@@ -98,6 +96,7 @@ func isAPIRequest(path string) bool {
 	apiRoutes := []string{
 		"/api/getOrders",
 		"/api/createOrder",
+		"/api/user/:userID/orders",
 		"/api/changeOrder",
 		"/api/deleteOrder",
 		"/api/users",

@@ -75,6 +75,7 @@ func (d *db) Login(ctx context.Context, email string, password string) (u user.U
 			ID:       "admin",
 			Email:    "alina@gmail.com",
 			Username: "Alina",
+			Orders:   []user.Order{},
 		}, nil
 	}
 	result := d.collection.FindOne(ctx, filter)
@@ -83,7 +84,52 @@ func (d *db) Login(ctx context.Context, email string, password string) (u user.U
 	if err != nil {
 		return user.User{}, fmt.Errorf("пользователь не найден %s", err)
 	}
+
+	// Инициализируем orders, если оно nil
+	if u.Orders == nil {
+		u.Orders = []user.Order{}
+	}
+
 	return u, nil
+}
+
+func (d *db) CreateOrder(ctx context.Context, userID string, order user.Order) error {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("failed to convert hex to objectedid, hex: %s", userID)
+	}
+
+	filter := bson.M{"_id": oid}
+	update := bson.M{"$push": bson.M{"orders": order}}
+
+	result, err := d.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to create order: %v", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+func (d *db) GetOrders(ctx context.Context, userID string) ([]user.Order, error) {
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert hex to objectedid, hex: %s", userID)
+	}
+
+	var u user.User
+	err = d.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&u)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find user: %v", err)
+	}
+
+	if u.Orders == nil {
+		return []user.Order{}, nil
+	}
+
+	return u.Orders, nil
 }
 
 func (d *db) AddToFavorites(ctx context.Context, userID string, productID string) error {

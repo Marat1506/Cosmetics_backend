@@ -14,4 +14,6 @@ type Storage interface {
 	UpdateCart(ctx context.Context, userID string, cart []string) error
 	GetFavorites(ctx context.Context, userID string) ([]string, error)
 	GetCart(ctx context.Context, userID string) ([]string, error)
+	CreateOrder(ctx context.Context, userID string, order Order) error
+	GetOrders(ctx context.Context, userID string) ([]Order, error)
 }

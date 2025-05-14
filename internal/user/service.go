@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"server/pkg/logging"
 )
 
@@ -38,6 +39,19 @@ func (s *Service) Login(ctx context.Context, dto LoginDTO) (User, error) {
 
 func (s *Service) AddToFavorites(ctx context.Context, userID string, productID string) error {
 	return s.storage.AddToFavorites(ctx, userID, productID)
+}
+
+func (s *Service) CreateOrder(ctx context.Context, userID string, products []string, total int) error {
+	order := Order{
+		ID:       primitive.NewObjectID().Hex(),
+		Products: products,
+		Total:    total,
+	}
+	return s.storage.CreateOrder(ctx, userID, order)
+}
+
+func (s *Service) GetOrders(ctx context.Context, userID string) ([]Order, error) {
+	return s.storage.GetOrders(ctx, userID)
 }
 
 func (s *Service) RemoveFromFavorites(ctx context.Context, userID string, productID string) error {

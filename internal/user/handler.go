@@ -42,6 +42,8 @@ func (h *handler) Register(router *httprouter.Router) {
 	router.POST("/api/user/:userID/cart/update", h.UpdateCart)
 	router.GET("/api/user/:userID/favorites", h.GetFavorites)
 	router.GET("/api/user/:userID/cart", h.GetCart)
+	router.POST("/api/user/:userID/orders", h.CreateOrder)
+	router.GET("/api/user/:userID/orders", h.GetOrders)
 
 }
 func (h *handler) GetList(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +70,51 @@ func (h *handler) CreateUser(w http.ResponseWriter, r *http.Request, params http
 	json.NewEncoder(w).Encode(map[string]string{"id": userID})
 }
 
+func (h *handler) CreateOrder(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		Products []string `json:"products"`
+		Total    int      `json:"total"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.logger.Error("Failed to decode request body", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.CreateOrder(r.Context(), userID, request.Products, request.Total); err != nil {
+		h.logger.Error("Failed to create order", err)
+		http.Error(w, "Failed to create order", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
+func (h *handler) GetOrders(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	userID := params.ByName("userID")
+	if userID == "" {
+		http.Error(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	orders, err := h.service.GetOrders(r.Context(), userID)
+	if err != nil {
+		h.logger.Error("Failed to get orders", err)
+		http.Error(w, "Failed to get orders", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(orders)
+}
 func (h *handler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := h.service.GetAllUsers(r.Context())
 

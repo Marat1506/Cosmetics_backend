@@ -7,6 +7,13 @@ type User struct {
 	PasswordHash string   `json:"-" bson:"password"`
 	Favorites    []string `json:"favorites" bson:"favorites"`
 	Cart         []string `json:"cart" bson:"cart"`
+	Orders       []Order  `json:"orders" bson:"orders"`
+}
+
+type Order struct {
+	ID       string   `json:"id" bson:"id"`
+	Products []string `json:"products" bson:"products"`
+	Total    int      `json:"total" bson:"total"`
 }
 
 type CreateUserDTO struct {
